@@ -9,9 +9,9 @@ from termcolor import colored
 RANGE = 8
 
 
-def evolve(num_gens, pop_size):
+def evolve(num_gens, popu_size):
 
-	popu = np.ndarray(shape=(pop_size, 8), dtype=tuple)
+	popu = np.ndarray(shape=(popu_size, 8), dtype=tuple)
 
 	# The first generation of elements cannot have individuals with 
 	# several queens in the same place
@@ -24,15 +24,22 @@ def evolve(num_gens, pop_size):
 		#print(popu[i])
 
 	# Evaluation of Initial Generation
-	fit_pop = evaluate(popu)
+	fit_popu = evaluate(popu)
 
 	# Crossover of Parents
 	new_popu = recombination(popu)
 	# Mutations
 	# new_popu = mutation(new_popu)
 
+
+	#Evaluation of the new Population
+	fit_popu = evaluate(new_popu)
 	# Selection process
-	new_popu = selection(new_popu)
+	selected = selection(new_popu, fit_popu, popu_size)
+
+	#Update population
+	popu = new_popu[selected]
+	fit_popu = fit_popu[selected]
 
 
 
@@ -97,10 +104,10 @@ def recombination(popu):
 		ind2 = popu[i+1]
 
 		idx1 = np.random.choice([i for i in range(0,RANGE)], size=4, replace=False)
-		print(idx1)
+		#print(idx1)
 
 		idx2 = np.random.choice([i for i in range(0,RANGE)], size=4, replace=False)
-		print(idx2)
+		#print(idx2)
 
 		genes1 = ind1[idx1]
 		genes2 = ind2[idx2]
@@ -113,13 +120,13 @@ def recombination(popu):
 			genes2 = ind2[idx2]
 			new_indiv = np.append(genes1, [genes2])
 
-		#rint(ind1)
+		#print(ind1)
 		#print(ind2)
 		#print(new_indiv)
 		
-		print(new_popu.shape)
+		#int(new_popu.shape)
 		new_popu = np.append(new_popu, [new_indiv], axis=0)
-		print(new_popu.shape)
+		#rint(new_popu.shape)
 
 	return new_popu
 
@@ -130,21 +137,49 @@ def mutation(popu):
 	return new_popu
 
 
-def selection(popu):
+def selection(popu, fit_popu, popu_size):
+	assert popu.shape[0] == len(fit_popu) # To guaranteed that the fitness evaluation is updated
+
+	# normalizing the fitness values for converting to Probabilities
 	
+	min_fit = fit_popu.min()
+	max_fit = fit_popu.max()
+	rangeFit = max_fit - min_fit
+	print("\nmin {}, max {}, range {}".format(min_fit, max_fit, rangeFit))
+
+	probs = np.zeros(popu.shape[0])
+	#print(probs.shape)
+	for i in range(probs.shape[0]):
+		if rangeFit > 0:
+			probs[i] = (fit_popu[i] - min_fit)/(max_fit - min_fit)
+		else:
+			probs[i] = 1e-05
+	#print(probs)
+	probs = probs/np.sum(probs) # the sum of the probabilities requires to be 1
+	#print(probs)
+
+	#print("----")
+
+	#print(popu.shape[0], [i for i in range(popu.shape[0])], probs.shape, popu_size)
+	idxs = rd.choices([i for i in range(popu.shape[0])], probs, k =popu_size)
+	print(idxs)
+	# This means that good configuration are likely to have several inviduals 
+	#assert set(idxs) == len(idxs)
+
+	return idxs
 
 
 if __name__ == "__main__":
 	# At the moment the parameters are selected arbitrarily
 	num_gens = 30
 	prob_mut = 0.2
-	pop_size = 2 * 10
+	popu_size = 2 * 10
 
-	popu = evolve(num_gens, pop_size)
+	popu = evolve(num_gens, popu_size)
 
 	"""
 	for i in range(len(popu)):
-		print("The fitness of the configuration is {}".format(fit_pop[i]))
+		print("The fitness of the configuration is {}".format(fit_popu[i]))
 		visualize_indiv(popu[i])
 	"""
 	stats()
